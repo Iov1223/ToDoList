@@ -1,6 +1,6 @@
 ﻿namespace ToDoList
 {
-    partial class Form1
+    partial class Напоминалка
     {
         /// <summary>
         /// Обязательная переменная конструктора.
@@ -83,6 +83,7 @@
             this.buttonUpdate.TabIndex = 3;
             this.buttonUpdate.Text = "Редактировать запись";
             this.buttonUpdate.UseVisualStyleBackColor = true;
+            this.buttonUpdate.Click += new System.EventHandler(this.buttonUpdate_Click);
             // 
             // textBoxTitle
             // 
@@ -143,11 +144,11 @@
             this.buttonQuestion.UseVisualStyleBackColor = true;
             this.buttonQuestion.Click += new System.EventHandler(this.buttonQuestion_Click);
             // 
-            // Form1
+            // Напоминалка
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(634, 450);
+            this.ClientSize = new System.Drawing.Size(634, 258);
             this.Controls.Add(this.buttonQuestion);
             this.Controls.Add(this.labelDateTime);
             this.Controls.Add(this.textBoxDateTime);
@@ -159,7 +160,9 @@
             this.Controls.Add(this.buttonCreate);
             this.Controls.Add(this.buttonDelete);
             this.Controls.Add(this.checkedListBox1);
-            this.Name = "Form1";
+            this.MaximumSize = new System.Drawing.Size(650, 297);
+            this.MinimumSize = new System.Drawing.Size(650, 297);
+            this.Name = "Напоминалка";
             this.Text = "Form1";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);

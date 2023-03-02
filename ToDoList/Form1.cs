@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -15,13 +16,13 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace ToDoList
 {
-    public partial class Form1 : Form
+    public partial class Напоминалка : Form
     {
         private SqlConnection connection;
         private List<string> actions = new List<string>();
         private List<string> time = new List<string>();
         private string SqlExpression;
-        public Form1()
+        public Напоминалка()
         {
             InitializeComponent();
             connection = new SqlConnection(@"Data Source=(localdb)\mssqllocaldb;Initial Catalog=RemindersDB;Integrated Security=True");
@@ -50,7 +51,6 @@ namespace ToDoList
         }
         private void Form1_Load(object sender, EventArgs e)
         {
-           // connection.Open();
             if (connection.State == ConnectionState.Open)
             {
                 ReadFromBase();
@@ -59,12 +59,19 @@ namespace ToDoList
             {
                 MessageBox.Show("Список дел отсутсвует!");
             }
-           // connection.Close();
+        }
+        private void Clear()
+        {
+            checkedListBox1.Items.Clear();
+            ReadFromBase();
+            textBoxTitle.Clear();
+            textBoxAction.Clear();
+            textBoxDateTime.Clear();
         }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-           // connection.Open();
+
             for (int i = 0; i < actions.Count; i++)
             {
                 if (time[i] == DateTime.Now.ToString("T") | time[i] == DateTime.Now.ToString("G"))
@@ -75,6 +82,17 @@ namespace ToDoList
                     if (result == DialogResult.Yes)
                     {
                         player.Stop();
+                        Regex regex = new Regex(@"\d{2}\.\d{2}\.\d{4}");
+                        if (regex.IsMatch(time[i]))
+                        {
+                            connection.Open();
+                            SqlExpression = $"DELETE FROM Reminders WHERE [Action]=N'{actions[i]}';";
+                            SqlCommand command = new SqlCommand(SqlExpression, connection);
+                            command.ExecuteNonQuery();
+                            checkedListBox1.Items.Clear();
+                            ReadFromBase();
+                            connection.Close();
+                        }
                     }
                     else if (result == DialogResult.No)
                     {
@@ -82,11 +100,10 @@ namespace ToDoList
                     }
                 }
             }
-           // connection.Close();
         }
         private void Delete_Click(object sender, EventArgs e)
         {
-            connection.Open();
+             connection.Open();
             foreach (string s in checkedListBox1.CheckedItems)
             {
                 string i = s.Split(' ')[0];
@@ -101,36 +118,47 @@ namespace ToDoList
 
         private void buttonCreate_Click(object sender, EventArgs e)
         {
-            connection.Open();
-            if (textBoxTitle.Text != "" && textBoxAction.Text != "" && textBoxDateTime.Text != "")
+            Regex regex = new Regex(@"^\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2}:\d{2}$"), regexOther = new Regex(@"^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$");
+            if (regex.IsMatch(textBoxDateTime.Text) || regexOther.IsMatch(textBoxDateTime.Text))
             {
-                
-                SqlExpression = $"INSERT INTO Reminders([Title], [Action], [ReminderDateTime]) VALUES(N'{textBoxTitle.Text}', N'{textBoxAction.Text}', '{textBoxDateTime.Text}');";
-                SqlCommand command = new SqlCommand(SqlExpression, connection);
-                command.ExecuteNonQuery();
-                checkedListBox1.Items.Clear();
-                ReadFromBase();
-                textBoxTitle.Clear();
-                textBoxAction.Clear();
-                textBoxDateTime.Clear();
-                
+                connection.Open();
+                if (textBoxTitle.Text != "" && textBoxAction.Text != "" && textBoxDateTime.Text != "")
+                {
+
+                    SqlExpression = $"INSERT INTO Reminders([Title], [Action], [ReminderDateTime]) VALUES(N'{textBoxTitle.Text}', N'{textBoxAction.Text}', '{textBoxDateTime.Text}');";
+                    SqlCommand command = new SqlCommand(SqlExpression, connection);
+                    command.ExecuteNonQuery();
+                    Clear();
+                }
+                else
+                {
+                    MessageBox.Show("Есть не заполненные поля", "ОШИБКА", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.RightAlign & MessageBoxOptions.RtlReading);
+                }
+                connection.Close();
             }
             else
             {
-                MessageBox.Show("Есть не заполненные поля! ");
+                MessageBox.Show("Чтобы узнать формат ввода нажмите на знак вопроса", "НЕКОРРЕКТНЫЙ ВВОД", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.RightAlign & MessageBoxOptions.RtlReading);
+                textBoxDateTime.Clear();
             }
-            connection.Close();
         }
 
         private void buttonQuestion_Click(object sender, EventArgs e)
         {
             MessageBox.Show("1. Для добавления записи нужно заполнить все поля.\n" +
-                "2. Поле \"Тема\" - коротко вписывается общий смысл напоминания (50 знаков).\n" +
-                "3. Поле \"Действия\" - расписывается более подробно смысл напоминания (100 знаков).\n" +
+                "2. Поле \"Тема\" - вписывается заголовок напоминания одним словом (15 знаков).\n" +
+                "3. Поле \"Действия\" - расписывается более подробно\nсмысл напоминания (100 знаков).\n" +
                 "4. Поле \"Дата и время\" - ужедневные напоминания:\n" +
-                "     * вписывается толко время в формате 15:30:00\n" +
-                "   напоминания в конкретную дату:\n" +
-                "     * вписывается дата и время в формате 01.03.2022 15:30:00", "Помощь");
+                "     - вписывается толко время в формате 15:30:00\n" +
+                "        напоминания в конкретную дату:\n" +
+                "     - вписывается дата и время в формате 01.03.2022\n       15:30:00\n" +
+                "5. Для редактирования записи:\n" +
+                "     - нужно выбрать запись (появится галчка)\n" +
+                "     - редактируются толко поля \"Действия\" и \"Дата и время\"\n" +
+                "     - вписать нужные изменения\n" +
+                "     - нажать кнопку \"Редактировать запись\"\n" +
+                "6. Для удаления нужно выбрать одну или несколько записей и нажать соответствующую кнопку.\n" +
+                "7. При ответе \"да\" на напоминание в конкретную дату, запись о действии удаляется автоматически.", "ИНФОРМАЦИЯ ПО ИСПОЛЬЗОВАНИЮ", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.RightAlign & MessageBoxOptions.RtlReading);
         }
 
         private void textBoxDateTime_KeyPress(object sender, KeyPressEventArgs e)
@@ -143,9 +171,46 @@ namespace ToDoList
             else
             {
                 e.Handled = true;
-                MessageBox.Show("НЕКОРРЕКТНЫЙ ВВОД:\nчтобы узнать формат ввода нажмите на знак вопроса");
+                MessageBox.Show("Чтобы узнать формат ввода нажмите на знак вопроса", "НЕКОРРЕКТНЫЙ ВВОД", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.RightAlign & MessageBoxOptions.RtlReading);
             }
-            regex = new Regex(@"^\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2}:\d{2}$");
+        }
+
+        private void buttonUpdate_Click(object sender, EventArgs e)
+        {
+            Regex regex = new Regex(@"^\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2}:\d{2}$"), regexOther = new Regex(@"^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$");
+            if (regex.IsMatch(textBoxDateTime.Text) || regexOther.IsMatch(textBoxDateTime.Text))
+            {
+                connection.Open();
+                    string _tmp = checkedListBox1.SelectedItem.ToString();
+                    string i = _tmp.Split(' ')[0];
+                if (textBoxAction.Text != "" && textBoxDateTime.Text != "")
+                {
+                    SqlExpression = $"UPDATE Reminders SET [Action]=N'{textBoxAction.Text}', ReminderDateTime='{textBoxDateTime.Text}' WHERE Id={i};";
+                    SqlCommand command = new SqlCommand(SqlExpression, connection);
+                    command.ExecuteNonQuery();
+                    Clear();
+                }
+                else if (textBoxAction.Text != "" && textBoxDateTime.Text == "")
+                {
+                    SqlExpression = $"UPDATE Reminders SET [Action]=N'{textBoxAction.Text}' WHERE Id={i};";
+                    SqlCommand command = new SqlCommand(SqlExpression, connection);
+                    command.ExecuteNonQuery();
+                    Clear();
+                }
+                else if (textBoxAction.Text == "" && textBoxDateTime.Text != "")
+                {
+                    SqlExpression = $"UPDATE Reminders SET  ReminderDateTime='{textBoxDateTime.Text}' WHERE Id={i};";
+                    SqlCommand command = new SqlCommand(SqlExpression, connection);
+                    command.ExecuteNonQuery();
+                    Clear();
+                }
+                connection.Close();
+            }
+            else
+            {
+                MessageBox.Show("Чтобы узнать формат ввода нажмите на знак вопроса", "НЕКОРРЕКТНЫЙ ВВОД ИЛИ ЗАПИСЬ НЕ ВЫБРАНА", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, MessageBoxOptions.RightAlign & MessageBoxOptions.RtlReading);
+                textBoxDateTime.Clear();
+            }
         }
     }
 }
